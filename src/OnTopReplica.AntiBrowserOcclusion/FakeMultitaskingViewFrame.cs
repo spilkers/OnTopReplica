@@ -15,6 +15,8 @@
         return CreateWindow();
       });
 
+    private static readonly WNDPROC LpfnWndProc = WndProc;
+
     // https://chromium.googlesource.com/chromium/src/+/refs/heads/main/ui/aura/native_window_occlusion_tracker_win.cc
     // if ((hwnd_class_name == "MultitaskingViewFrame" ||
     //       hwnd_class_name == "TaskListThumbnailWnd"))
@@ -49,12 +51,16 @@
       fixed(char* className = WindowClassName) {
         var wndClass = new WNDCLASSW {
           lpszClassName = new PCWSTR(className),
-          lpfnWndProc = PInvoke.DefWindowProc,
+          lpfnWndProc = LpfnWndProc,
           hInstance = PInvoke.GetModuleHandle(default(PCWSTR))
         };
 
         return PInvoke.RegisterClass(wndClass);
       }
+    }
+
+    private static LRESULT WndProc(HWND hWnd, uint Msg, WPARAM wParam, LPARAM lParam) {
+      return PInvoke.DefWindowProc(hWnd, Msg, wParam, lParam);
     }
 
     #endregion Methods

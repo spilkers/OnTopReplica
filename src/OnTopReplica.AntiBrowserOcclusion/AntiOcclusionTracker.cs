@@ -1,4 +1,5 @@
 ﻿namespace OnTopReplica.AntiBrowserOcclusion {
+
   using Windows.Win32;
   using Windows.Win32.Foundation;
   using Windows.Win32.UI.Accessibility;
@@ -9,7 +10,9 @@
 
     private const uint EVENT_OBJECT_HIDE = 0x8003;
     private const uint EVENT_OBJECT_SHOW = 0x8002;
+    private static readonly WINEVENTPROC PfnWinEventProc = WinEventProc;
     private static UnhookWinEventSafeHandle UnhookWinEventSafeHandle;
+    private static bool showing_thumbnails_;
 
     #endregion Fields
 
@@ -21,15 +24,15 @@
 
     public static void Start() {
       Stop();
-      
+
       PerformAntiOcclusion();
 
       UnhookWinEventSafeHandle =
         PInvoke.SetWinEventHook(
-          EVENT_OBJECT_HIDE,
+          EVENT_OBJECT_SHOW,
           EVENT_OBJECT_HIDE,
           PInvoke.GetModuleHandle(default(string)),
-          WinEventProc,
+          PfnWinEventProc,
           0,
           0,
           0);
@@ -84,7 +87,8 @@
       ////  std::wstring hwnd_class_name = gfx::GetClassName(hwnd);
       ////  calculate_occlusion = hwnd_class_name.starts_with(L"Chrome_WidgetWin_") ||
       ////                        hwnd_class_name == L"Shell_TrayWnd";
-      ;
+
+      ; // Nop, or is here something to do?
 
       // Detect if either the alt tab view or the task list thumbnail is being
       // shown. If so, mark all non-hidden windows as occluded, and remember that
@@ -106,6 +110,26 @@
       ////                                  showing_thumbnails_));
       ////  }
       ////  return;
+
+      if(@event == EVENT_OBJECT_SHOW) {
+        if(showing_thumbnails_) {
+          return;
+        }
+
+        // We ignore ourselves...
+        if(hwnd == FakeMultitaskingViewFrame.GetHandle()) {
+          return;
+        }
+
+        var hwnd_class_name = getClassName(hwnd);
+        if(hwnd_class_name == "MultitaskingViewFrame" ||
+           hwnd_class_name == "TaskListThumbnailWnd") {
+          showing_thumbnails_ = true;
+        }
+
+        return;
+      }
+
       ////} else if (event == EVENT_OBJECT_HIDE) {
       ////  // Avoid getting the hwnd's class name, and recomputing occlusion, if not
       ////  // needed.
@@ -126,14 +150,19 @@
       ////  }
       ////}
 
-      if(@event != EVENT_OBJECT_HIDE) {
-        return;
-      }
+      if(@event == EVENT_OBJECT_HIDE) {
+        if(!showing_thumbnails_) {
+          return;
+        }
 
-      var hwnd_class_name = getClassName(hwnd);
-      if(hwnd_class_name == "MultitaskingViewFrame" ||
-         hwnd_class_name == "TaskListThumbnailWnd") {
-        PerformAntiOcclusion();
+        var hwnd_class_name = getClassName(hwnd);
+        if(hwnd_class_name == "MultitaskingViewFrame" ||
+           hwnd_class_name == "TaskListThumbnailWnd") {
+          showing_thumbnails_ = false;
+          PerformAntiOcclusion();
+        }
+
+        return;
       }
 
       static unsafe string getClassName(HWND hwnd) {
