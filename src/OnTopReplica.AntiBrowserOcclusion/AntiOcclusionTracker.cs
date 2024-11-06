@@ -168,7 +168,7 @@
       static unsafe string getClassName(HWND hwnd) {
         // The maximum length for <b>lpszClassName</b> is 256
         const int bufferLen = 257;
-        fixed(char* bufferptr = stackalloc char[bufferLen]) {
+        fixed(char* bufferptr = new char[bufferLen]) {
           PWSTR lpClassName = bufferptr;
           _ = PInvoke.GetClassName(hwnd, lpClassName, bufferLen);
           return lpClassName.ToString();
