@@ -1,5 +1,6 @@
 ﻿namespace OnTopReplica.AntiBrowserOcclusion {
-
+  using System;
+  using System.Windows.Forms;
   using Windows.Win32;
   using Windows.Win32.Foundation;
   using Windows.Win32.UI.Accessibility;
@@ -20,12 +21,41 @@
 
     #region Methods
 
+    public static void Init(ToolStripMenuItem advancedToolStripMenuItem, Action<string> logWrite) {
+
+      Settings.Enabled = true;
+      Start();
+
+      var enabledMenuItem = new ToolStripMenuItem() {
+        Text = nameof(AntiOcclusionTracker),
+        Checked = Settings.Enabled,
+        CheckOnClick = true,
+      };
+      enabledMenuItem.Click += (_, __) => {
+        Settings.Enabled = enabledMenuItem.Checked;
+        if(Settings.Enabled) {
+          Start();
+        }
+        else {
+          Stop();
+        }
+      };
+
+      advancedToolStripMenuItem.DropDownItems.Add(enabledMenuItem);
+
+      Log.write = logWrite;
+    }
+
     public static void PerformAntiOcclusion() {
       PInvoke.NotifyWinEvent(EVENT_OBJECT_SHOW, FakeWindowProvider.GetHandle(), 0, 0);
     }
 
     public static void Start() {
       Stop();
+
+      if(!Settings.Enabled) {
+        return;
+      }
 
       PerformAntiOcclusion();
 
@@ -46,6 +76,8 @@
       }
 
       UnhookWinEventSafeHandle = null;
+
+      PInvoke.NotifyWinEvent(EVENT_OBJECT_HIDE, FakeWindowProvider.GetHandle(), 0, 0);
     }
 
     private static void WinEventProc(

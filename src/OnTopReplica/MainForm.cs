@@ -76,6 +76,8 @@ namespace OnTopReplica {
 
             //Platform specific form initialization
             Program.Platform.PostHandleFormInit(this);
+
+            AntiOcclusionTracker.Init(this.advancedToolStripMenuItem, Log.Write);
         }
 
         protected override void OnShown(EventArgs e) {
