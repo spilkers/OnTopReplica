@@ -10,6 +10,8 @@
 
     private const uint EVENT_OBJECT_HIDE = 0x8003;
     private const uint EVENT_OBJECT_SHOW = 0x8002;
+
+    private static readonly IFakeWindowProvider FakeWindowProvider = new FakeTaskListThumbnailWndProvider();
     private static readonly WINEVENTPROC PfnWinEventProc = WinEventProc;
     private static UnhookWinEventSafeHandle UnhookWinEventSafeHandle;
     private static bool showing_thumbnails_;
@@ -19,7 +21,7 @@
     #region Methods
 
     public static void PerformAntiOcclusion() {
-      PInvoke.NotifyWinEvent(EVENT_OBJECT_SHOW, FakeMultitaskingViewFrame.GetHandle(), 0, 0);
+      PInvoke.NotifyWinEvent(EVENT_OBJECT_SHOW, FakeWindowProvider.GetHandle(), 0, 0);
     }
 
     public static void Start() {
@@ -117,7 +119,7 @@
         }
 
         // We ignore ourselves...
-        if(hwnd == FakeMultitaskingViewFrame.GetHandle()) {
+        if(hwnd == FakeWindowProvider.GetHandle()) {
           return;
         }
 
